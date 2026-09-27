@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1f16">
+<title>Palitinho Poker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d3c26'/%3E%3Crect x='14' y='7' width='4' height='19' rx='2' fill='%23e8c15a'/%3E%3Ccircle cx='16' cy='7' r='4' fill='%23d8472f'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ ENTRADA ============ -->
+<section id="home" class="screen">
+  <div class="home-card">
+    <div class="logo">
+      <span class="stick"></span><span class="stick"></span><span class="stick"></span>
+      <h1>Palitinho <em>Poker</em></h1>
+    </div>
+    <p class="tag">Adivinhe a soma dos palitos. Mesa de até 20 jogadores.</p>
+
+    <label class="field">Seu nome
+      <input id="nameInput" maxlength="14" placeholder="Como te chamam na mesa?" autocomplete="off">
+    </label>
+
+    <div class="row">
+      <button id="btnCreate" class="btn gold">Criar mesa</button>
+      <label class="inline">Palitos
+        <select id="sticksSel"><option value="3" selected>3 cada</option><option value="2">2 cada</option></select>
+      </label>
+    </div>
+
+    <div class="row">
+      <input id="codeInput" maxlength="4" placeholder="CÓDIGO" autocomplete="off" class="code">
+      <button id="btnJoin" class="btn">Entrar na mesa</button>
+    </div>
+
+    <button id="btnDemo" class="btn ghost wide">Assistir demonstração (20 bots jogando)</button>
+    <button id="btnRules" class="link">Ver as regras</button>
+    <p id="homeErr" class="err" role="alert"></p>
+  </div>
+</section>
+
+<!-- ============ MESA ============ -->
+<section id="game" class="screen" hidden>
+  <header class="topbar">
+    <div class="tb-left">
+      <button id="btnLeave" class="icon" title="Sair da mesa" aria-label="Sair">⟵</button>
+      <button id="btnCopy" class="chip" title="Copiar link da mesa">Mesa <b id="roomCode">----</b> ⧉</button>
+    </div>
+    <div class="tb-mid"><span id="roundLabel">Rodada 0</span><small id="modeChip"></small></div>
+    <div class="tb-right">
+      <button id="btnScore" class="icon" title="Placar" aria-label="Placar">🏆</button>
+      <button id="btnRules2" class="icon" title="Regras" aria-label="Regras">?</button>
+      <button id="btnLog" class="icon" title="Histórico" aria-label="Histórico">☰</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="table-wrap" id="tableWrap">
+      <div class="bar-back" aria-hidden="true">
+        <canvas id="barCanvas"></canvas>
+      </div>
+      <div class="table" id="table">
+        <div class="felt"><i class="ring"></i><i class="mark">PALITINHO</i></div>
+        <div class="center" id="center">
+          <div id="statusMain" class="status-main">Aguardando jogadores</div>
+          <div id="statusSub" class="status-sub"></div>
+          <div id="totalBox" class="total-box" hidden><span>SOMA</span><b id="totalNum">0</b></div>
+          <div class="timer" id="timer" hidden><i id="timerBar"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <aside id="logPanel" class="log" hidden>
+      <div class="log-head"><b>Histórico</b><button id="btnLogClose" class="icon" aria-label="Fechar">✕</button></div>
+      <div id="logList" class="log-list"></div>
+    </aside>
+  </div>
+
+  <footer id="controls" class="controls"></footer>
+
+  <div id="banner" class="banner" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+</section>
+
+<!-- ============ REGRAS ============ -->
+<dialog id="rulesDlg">
+  <h2>Regras</h2>
+  <ol>
+    <li>Cada jogador tem <b>3 palitos</b>. Em toda rodada escolhe em segredo quantos leva na mão (de 0 até o que tem).</li>
+    <li><b>LONA</b> é mão vazia (0 palitos). Na <b>1ª rodada a LONA é proibida</b> para todos.</li>
+    <li>Em sentido anti-horário, cada um palpita a <b>soma de todos os palitos</b> da mesa. <b>Não pode repetir</b> palpite.</li>
+    <li>Todos abrem a mão. Quem <b>acerta a soma</b> se safa, e o jogo continua até sobrar um só na roda: <b>esse é quem perde</b>. Não tem empate nem campeão — só quem sobra.</li>
+  </ol>
+  <p><b>Descer palito</b> (bom para poucos): quem acerta desce 1 palito. Ao zerar os palitos, está salvo e sai da roda. Quem ainda tem palito continua jogando.</p>
+  <p><b>No tiro</b> (bom para muitos): quem acerta já sai da roda na hora, salvo. Rodadas bem mais rápidas.</p>
+  <p><b>Cantou ferrado</b>: acertar de cara, no primeiro palpite da rodada, com a mesa ainda cheia. Não vale nada na regra — é só para o ego.</p>
+  <p class="small">O estilo é escolhido pelo dono da mesa antes de iniciar. Quem abre os palpites muda a cada rodada. Se você demorar, o jogo joga por você; duas vezes seguidas e um bot assume até você voltar.</p>
+  <form method="dialog"><button class="btn gold">Entendi</button></form>
+</dialog>
+
+<!-- ============ PLACAR ============ -->
+<dialog id="scoreDlg">
+  <h2>Placar da mesa</h2>
+  <div id="scoreBody"></div>
+  <form method="dialog" class="dlg-actions">
+    <button type="button" id="btnResetScore" class="btn mini" hidden>Zerar placar</button>
+    <button class="btn gold">Fechar</button>
+  </form>
+</dialog>
+
+<script type="module">
+  import { initBarScene } from './scene3d.js';
+  const c = document.getElementById('barCanvas');
+  if (c) { try { initBarScene(c); } catch (e) { /* sem WebGL: fica o gradiente CSS */ } }
+</script>
+<script src="app.js"></script>
+</body>
+</html>

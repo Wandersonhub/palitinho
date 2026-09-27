@@ -1,0 +1,14 @@
+{
+  "name": "palitinho-poker",
+  "version": "1.0.0",
+  "description": "Jogo do Palitinho (Purrinha) online, mesa estilo poker para até 20 jogadores",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "sim": "node tools/sim.js",
+    "test": "node tools/smoke.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
