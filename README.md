@@ -12,6 +12,14 @@ Mesinha amarela de fórmica com friso metálico (a mesa de boteco de verdade), n
 - O campo de visão da câmera se ajusta pela proporção da tela (`public/scene3d.js`, `HALF_H_DEG`) pra garrafas e cachorro não sumirem no celular em pé.
 - Baseado em fotos reais de boteco: cadeiras de plástico amarelas e vermelhas misturadas (`.chair-yellow`/`.chair-red` em `public/style.css`, alternadas por assento em `public/app.js`), piso de ladrilho quadriculado e garrafa com isopor amarelo no balcão (`bottleWithKoozie` em `public/scene3d.js`).
 
+## Deploy (jogar online com os amigos)
+
+O servidor já respeita `process.env.PORT` e só tem uma dependência (`ws`) — sobe em qualquer host Node com WebSocket.
+
+Caminho grátis (Render): suba este projeto pra um repositório no GitHub e, no Render, use **New + → Blueprint** apontando pro repo — ele lê o `render.yaml` daqui e configura build/start sozinho. Sem `render.yaml`, configure manualmente: Environment `Node`, Build Command `npm install`, Start Command `npm start`. O plano free "dorme" depois de 15 min sem acesso (demora uns 30-50s pra acordar no primeiro acesso do dia); pra ficar sempre ligado, é só trocar pro Railway ou um VPS pago mais pra frente — nada no código muda.
+
+Depois do deploy: crie a mesa na URL pública, clique em "Mesa XXXX ⧉" pra copiar o link (o código já vem preenchido pra quem abrir) e manda pro grupo.
+
 ## Rodar
 
 ```
