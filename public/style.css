@@ -87,11 +87,13 @@ input.code { text-transform: uppercase; letter-spacing: 6px; text-align: center;
   box-shadow: inset 0 0 0 2px #7a4b26, inset 0 0 60px #000a, 0 12px 40px #000c, 0 0 0 2px var(--rail2);
 }
 .center {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 44%; text-align: center;
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 68%; width: max-content; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+  background: rgba(10, 8, 6, .82); border: 1px solid rgba(255, 255, 255, .1); border-radius: clamp(14px, 2.6vmin, 22px);
+  padding: clamp(10px, 2vmin, 18px) clamp(16px, 3.4vmin, 30px); box-shadow: 0 10px 30px #0007, inset 0 1px 0 #ffffff14;
 }
-.status-main { font: 700 clamp(14px, 2.6vmin, 24px)/1.15 Georgia, serif; text-shadow: 0 2px 6px #0008; }
-.status-sub { color: #cfe3d6; font-size: clamp(11px, 1.7vmin, 15px); min-height: 1.2em; }
+.status-main { color: #fff; font: 700 clamp(14px, 2.6vmin, 24px)/1.15 Georgia, serif; text-shadow: 0 2px 6px #0008; }
+.status-sub { color: #e7f2ec; font-size: clamp(11px, 1.7vmin, 15px); min-height: 1.2em; }
 .total-box { display: flex; flex-direction: column; align-items: center; animation: pop .5s 1.3s both; }
 .total-box span { font-size: 11px; letter-spacing: 3px; color: var(--gold); }
 .total-box b { font: 800 clamp(34px, 8vmin, 72px)/1 Georgia, serif; color: #fff; text-shadow: 0 3px 0 #0006; }
@@ -237,17 +239,18 @@ body {
   background: radial-gradient(ellipse at 35% 25%, #3a3a38, #16110c 80%);
   box-shadow: inset 0 3px 5px #fff3, inset 0 -3px 6px #000c, 0 1px 2px #000b;
 }
-.felt::after { /* tampo de fórmica amarela */
+.felt::after { /* toalha xadrez clara, de mesa de boteco */
   content: ""; position: absolute; inset: clamp(20px, 4.2vmin, 40px); border-radius: 50%;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 38% 30%, #fff4b8 0%, #ffe15c 32%, #f2c230 62%, #d9a62d 88%, #b9861e 100%);
-  box-shadow: inset 0 0 40px 6px #00000022, inset 0 0 0 2px #b9861e66, inset 0 10px 26px #ffffff55;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    repeating-conic-gradient(#fbeee0 0% 25%, #e6564a 0% 50%);
+  background-size: 100% 100%, clamp(28px, 5.4vmin, 46px) clamp(28px, 5.4vmin, 46px);
+  box-shadow: inset 0 0 46px 10px #00000022, inset 0 0 0 2px #ffffff88, inset 0 14px 30px #ffffff40, inset 0 -18px 34px #00000018;
 }
-.felt .ring { position: absolute; inset: 15%; border-radius: 50%; border: 2px solid #6b4b1240; z-index: 1; }
+.felt .ring { position: absolute; inset: 15%; border-radius: 50%; border: 2px solid #ffffffb0; z-index: 1; }
 .felt .mark {
   position: absolute; left: 50%; top: 27%; transform: translateX(-50%); z-index: 1; font: 800 clamp(12px, 3vmin, 30px) Georgia, serif;
-  letter-spacing: .5em; color: #6b4b1222; white-space: nowrap; font-style: normal; text-indent: .5em;
+  letter-spacing: .5em; color: #ffffff55; white-space: nowrap; font-style: normal; text-indent: .5em;
 }
 .center { z-index: 2; }
 
