@@ -33,7 +33,7 @@ class Room {
   constructor(code, opts = {}) {
     this.code = code;
     this.demo = !!opts.demo;
-    this.game = new Game({ startSticks: opts.startSticks || 3, mode: opts.mode });
+    this.game = new Game({ startSticks: 3, mode: opts.mode });
     this.scores = new Map(); // placar da mesa (vale enquanto a sala existir)
     this.scoredGame = 0;
     this.clients = new Set(); // conexões
@@ -43,6 +43,10 @@ class Room {
     this.scheduledStamp = -1;
     this.deadline = null;
     this.lastActivity = Date.now();
+    this.timeChoose = T.choose; // configurável pelo dono, ainda no lobby
+    this.timeGuess = T.guess;
+    this.autoPilotEnabled = false; // piloto automático persistente: opcional, padrão desligado
+    this.endVotes = new Set(); // tokens dos jogadores que votaram "parar por hoje"
   }
 
   // ----- helpers
@@ -78,18 +82,49 @@ class Room {
       this.scores.set(r.id, e);
     }
   }
-  scoreboard() {
+  // liveGate=true (padrão): só mostra o troféu quando há um único dono (sem empate).
+  // liveGate=false: cerimônia final, mostra todo mundo empatado no topo/base, sem filtro.
+  scoreboard(liveGate = true) {
     const rows = [...this.scores.values()].filter((r) => r.rounds > 0);
     const pick = (key, dir) => {
       if (!rows.length) return [];
       const val = dir === 'min' ? Math.min(...rows.map((r) => r[key])) : Math.max(...rows.map((r) => r[key]));
-      return rows.filter((r) => r[key] === val).map((r) => r.id);
+      const tied = rows.filter((r) => r[key] === val).map((r) => r.id);
+      if (liveGate && tied.length > 1) return [];
+      return tied;
     };
     const rei = pick('roundLosses', 'min'); // Rei do Palito: quem menos erra rodada
     const purrinha = pick('roundLosses', 'max'); // Purrinha da mesa: quem mais erra rodada
     rows.sort((a, b) => a.roundLosses - b.roundLosses || b.rounds - a.rounds || a.name.localeCompare(b.name));
     const seatsOf = (ids) => this.game.seats.map((p, i) => (p && ids.includes(p.id) ? i : -1)).filter((i) => i >= 0);
     return { rows, rei, purrinha, reiSeats: seatsOf(rei), purrinhaSeats: seatsOf(purrinha) };
+  }
+
+  // ----- encerramento por consenso
+  // Jogadores humanos, sentados, conectados e não-bots: só eles precisam concordar.
+  eligibleEndVoters() {
+    return this.game.seats.filter((p) => p && !p.bot && p.connected);
+  }
+  checkSessionEnd() {
+    const eligible = this.eligibleEndVoters();
+    // tira votos de quem não está mais elegível (saiu, virou bot, desconectou)
+    const ids = new Set(eligible.map((p) => p.id));
+    for (const tok of [...this.endVotes]) if (!ids.has(tok)) this.endVotes.delete(tok);
+    if (!eligible.length) return;
+    if (eligible.every((p) => this.endVotes.has(p.id))) {
+      const payload = { t: 'sessionEnded', scoreboard: this.scoreboard(false), room: this.code };
+      for (const c of this.clients) send(c.ws, payload);
+      this.endVotes.clear();
+    }
+  }
+  endVoteStatus(myToken) {
+    const eligible = this.eligibleEndVoters();
+    return {
+      count: eligible.filter((p) => this.endVotes.has(p.id)).length,
+      needed: eligible.length,
+      mine: this.endVotes.has(myToken),
+      voterNames: eligible.filter((p) => this.endVotes.has(p.id)).map((p) => p.name),
+    };
   }
 
   // ----- envio
@@ -118,6 +153,10 @@ class Room {
       hostSeat: this.hostSeat(),
       mySeat: me,
       hint,
+      timeChoose: Math.round(this.timeChoose / 1000),
+      timeGuess: Math.round(this.timeGuess / 1000),
+      autoPilot: this.autoPilotEnabled,
+      endVotes: this.endVoteStatus(c.token),
       s: view,
     };
     c.ws.send(JSON.stringify(payload));
@@ -128,6 +167,7 @@ class Room {
     this.lastActivity = Date.now();
     this.tally();
     if (this.game.stamp !== this.scheduledStamp) this.schedule();
+    this.checkSessionEnd();
     this.broadcast();
   }
 
@@ -173,8 +213,8 @@ class Room {
       }
       if (humanPending) {
         const anyOffline = g.pendingChoosers().some((s) => !g.seats[s].bot && !g.seats[s].connected);
-        const wait = anyOffline ? Math.min(T.choose, T.away) : T.choose;
-        this.deadline = Date.now() + T.choose;
+        const wait = anyOffline ? Math.min(this.timeChoose, T.away) : this.timeChoose;
+        this.deadline = Date.now() + this.timeChoose;
         this.later(wait, () => this.forceChoose());
       }
       return;
@@ -186,11 +226,11 @@ class Room {
       if (isAuto(p)) {
         this.later(fast ? rand(250, 650) : rand(600, 1500), () => g.guess(s, bots.chooseGuess(g, s, p.persona || 'Novato')));
       } else {
-        this.deadline = Date.now() + T.guess;
-        const wait = p.connected ? T.guess : Math.min(T.guess, T.away);
+        this.deadline = Date.now() + this.timeGuess;
+        const wait = p.connected ? this.timeGuess : Math.min(this.timeGuess, T.away);
         this.later(wait, () => {
           p.timeouts++;
-          if (p.timeouts >= 2) p.auto = true; // dois timeouts seguidos: piloto automático
+          if (this.autoPilotEnabled && p.timeouts >= 2) p.auto = true; // dois timeouts seguidos: piloto automático (opcional)
           g.guess(s, bots.chooseGuess(g, s, p.persona || 'Novato'));
         });
       }
@@ -212,7 +252,7 @@ class Room {
     const g = this.game;
     for (const s of g.pendingChoosers()) {
       const p = g.seats[s];
-      if (!isAuto(p)) { p.timeouts++; if (p.timeouts >= 2) p.auto = true; }
+      if (!isAuto(p)) { p.timeouts++; if (this.autoPilotEnabled && p.timeouts >= 2) p.auto = true; }
       g.choose(s, bots.chooseSticks(g, s, p.persona || 'Novato'));
     }
   }
@@ -231,12 +271,13 @@ class Room {
         const target = g.freeSeat(Number.isInteger(msg.seat) ? msg.seat : undefined);
         if (target < 0) throw new GameError('CHEIA', 'Mesa cheia.');
         if (Number.isInteger(msg.seat) && msg.seat >= 0 && g.seats[msg.seat]) throw new GameError('OCUPADO', 'Esse lugar já está ocupado.');
-        g.sit(target, { id: c.token, name });
+        g.sit(target, { id: c.token, name, avatar: cleanAvatar(msg.avatar) });
         break;
       }
       case 'stand': {
         if (seat < 0) return;
         g.stand(seat);
+        this.endVotes.delete(c.token);
         break;
       }
       case 'fillBots': {
@@ -258,7 +299,24 @@ class Room {
       }
       case 'config': {
         needHost(isHost, this.demo);
-        g.config({ mode: msg.mode, startSticks: msg.sticks });
+        g.config({ mode: msg.mode });
+        if (g.phase === PHASE.LOBBY) {
+          if (msg.timeChoose !== undefined) {
+            const secs = clampNum(parseInt(msg.timeChoose, 10), 5, 60);
+            if (secs !== null) this.timeChoose = secs * 1000;
+          }
+          if (msg.timeGuess !== undefined) {
+            const secs = clampNum(parseInt(msg.timeGuess, 10), 5, 45);
+            if (secs !== null) this.timeGuess = secs * 1000;
+          }
+          if (msg.autoPilot !== undefined) this.autoPilotEnabled = !!msg.autoPilot;
+        }
+        break;
+      }
+      case 'endVote': {
+        if (seat < 0) throw new GameError('ASSENTO', 'Você não está sentado.');
+        if (this.endVotes.has(c.token)) this.endVotes.delete(c.token);
+        else this.endVotes.add(c.token);
         break;
       }
       case 'resetScores': {
@@ -321,6 +379,12 @@ function addBots(g, n, preferSeat) {
 }
 function cleanName(n) {
   return String(n || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 14);
+}
+function cleanAvatar(a) {
+  return /^ava-[0-9]$/.test(a || '') ? a : null;
+}
+function clampNum(n, a, b) {
+  return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : null;
 }
 
 // ---------------------------------------------------------------- Salas
@@ -405,7 +469,7 @@ function join(conn, msg) {
     rooms.set(room.code, room);
     addBots(room.game, room.game.maxSeats);
   } else if (msg.create) {
-    room = new Room(newCode(), { hostToken: token, startSticks: [2, 3].includes(msg.sticks) ? msg.sticks : 3, mode: msg.mode });
+    room = new Room(newCode(), { hostToken: token, mode: msg.mode });
     rooms.set(room.code, room);
   } else {
     room = rooms.get(wanted);

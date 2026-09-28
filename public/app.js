@@ -24,6 +24,9 @@
     notiro: { name: 'No tiro', desc: 'Quem acerta já sai da roda, salvo. Continua até sobrar um só: esse perde. Ótimo para muitos jogadores, rodadas bem rápidas.' },
   };
 
+  // ---------- avatar escolhido na entrada ----------
+  const AVATAR_PRESETS = Array.from({ length: 10 }, (_, i) => 'ava-' + i);
+
   // ---------- avatares (SVG gerado a partir do nome) ----------
   const SKIN = ['#f3d2b3', '#e0ac82', '#c68863', '#8d5a3b', '#5e3a26'];
   const HAIR = ['#1b1b1b', '#3b2417', '#6b4423', '#b5651d', '#d9b26a', '#8a8a8a', '#a3221f'];
@@ -95,6 +98,12 @@
       if (S && S.s.phase === 'over' && m.s.phase !== 'over') bannerHidden = false;
       S = m;
       render();
+      return;
+    }
+    if (m.t === 'sessionEnded') {
+      $('ceremonyBody').innerHTML = ceremonyHTML(m.scoreboard);
+      $('ceremonyDlg').showModal();
+      return;
     }
   }
 
@@ -113,7 +122,7 @@
     $('homeErr').textContent = '';
     connect(() => send({ t: 'join', token, name, ...payload }));
   }
-  $('btnCreate').onclick = () => enter({ create: true, sticks: parseInt($('sticksSel').value, 10) });
+  $('btnCreate').onclick = () => enter({ create: true });
   $('btnJoin').onclick = () => {
     const code = $('codeInput').value.trim().toUpperCase();
     if (code.length !== 4) { $('homeErr').textContent = 'O código tem 4 letras.'; return; }
@@ -136,6 +145,25 @@
   $('nameInput').value = ls.get('pp_name') || '';
   const h0 = location.hash.replace('#', '').toUpperCase();
   if (/^[A-Z]{4}$/.test(h0)) { $('codeInput').value = h0; }
+
+  // ---------- seleção de avatar ----------
+  let chosenAvatar = ls.get('pp_avatar') || AVATAR_PRESETS[0];
+  if (!AVATAR_PRESETS.includes(chosenAvatar)) chosenAvatar = AVATAR_PRESETS[0];
+  function renderAvatarPick() {
+    const box = $('avatarPick');
+    if (!box) return;
+    box.innerHTML = AVATAR_PRESETS.map((seed) =>
+      `<button type="button" class="avatar-opt ${seed === chosenAvatar ? 'sel' : ''}" data-avatar="${seed}">${avatarSVG(seed)}</button>`
+    ).join('');
+  }
+  renderAvatarPick();
+  $('avatarPick') && $('avatarPick').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-avatar]');
+    if (!b) return;
+    chosenAvatar = b.dataset.avatar;
+    ls.set('pp_avatar', chosenAvatar);
+    renderAvatarPick();
+  });
 
   let toastT;
   function toast(msg, ok) {
@@ -232,7 +260,7 @@
       const savedTag = p.out ? `<div class="saved-tag">SALVO ${p.outPos}º</div>` : '';
       el.className = cls.join(' ');
       el.innerHTML = `<div class="chair"><i class="cush"></i><i class="back"></i></div>${badge}
-        <div class="avatar">${avatarSVG(p.name + '|' + i)}<div class="tags">${tags}</div>${hand}${minus}</div>
+        <div class="avatar">${avatarSVG(p.avatar || (p.name + '|' + i))}<div class="tags">${tags}</div>${hand}${minus}</div>
         <div class="plate">${esc(p.name)}</div>${savedTag}<div class="sticks">${sticks}</div>`;
     }
 
@@ -295,12 +323,21 @@
     const host = S.isHost && !S.demo;
     const card = (m) => `<button class="mode ${s.mode === m ? 'on' : ''}" data-act="mode" data-m="${m}" ${host ? '' : 'disabled'}>
         <b>${MODES[m].name}</b><span>${MODES[m].desc}</span></button>`;
-    const stk = host
-      ? `<div class="host-row small-row"><span class="small">Palitos por jogador:</span>
-          <button class="btn mini ${s.startSticks === 3 ? 'sel' : ''}" data-act="sticks" data-n="3">3</button>
-          <button class="btn mini ${s.startSticks === 2 ? 'sel' : ''}" data-act="sticks" data-n="2">2</button></div>`
-      : `<p class="small">${s.startSticks} palitos por jogador</p>`;
-    return `<div class="modes">${card('descer')}${card('notiro')}</div>${stk}`;
+    const timers = host
+      ? `<div class="host-row small-row timer-cfg">
+          <label class="inline">Tempo pra escolher os palitos (segundos)
+            <input type="number" id="cfgTimeChoose" min="5" max="60" value="${S.timeChoose ?? 20}">
+          </label>
+          <label class="inline">Tempo pra palpitar (segundos)
+            <input type="number" id="cfgTimeGuess" min="5" max="45" value="${S.timeGuess ?? 15}">
+          </label>
+          <button class="btn mini" data-act="saveTimers">Salvar tempos</button>
+        </div>
+        <div class="host-row small-row">
+          <label class="inline chk"><input type="checkbox" id="cfgAutoPilot" ${S.autoPilot ? 'checked' : ''}> Piloto automático persistente (2 vezes sem jogar)</label>
+        </div>`
+      : `<p class="small">Tempo: ${S.timeChoose ?? 20}s pra escolher · ${S.timeGuess ?? 15}s pra palpitar</p>`;
+    return `<div class="modes">${card('descer')}${card('notiro')}</div>${timers}`;
   }
 
   function renderControls() {
@@ -376,13 +413,20 @@
     const a = b.dataset.act;
     if (a === 'choose') send({ t: 'choose', n: +b.dataset.n });
     else if (a === 'guess') send({ t: 'guess', v: +b.dataset.v });
-    else if (a === 'sit') send({ t: 'sit', name: nameVal() });
+    else if (a === 'sit') send({ t: 'sit', name: nameVal(), avatar: chosenAvatar });
     else if (a === 'addBot') send({ t: 'addBot' });
     else if (a === 'fill') send({ t: 'fillBots', count: 20 });
     else if (a === 'start') send({ t: 'start' });
     else if (a === 'back') send({ t: 'back' });
     else if (a === 'mode') send({ t: 'config', mode: b.dataset.m });
-    else if (a === 'sticks') send({ t: 'config', sticks: +b.dataset.n });
+    else if (a === 'saveTimers') {
+      const tc = +($('cfgTimeChoose') ? $('cfgTimeChoose').value : 20);
+      const tg = +($('cfgTimeGuess') ? $('cfgTimeGuess').value : 15);
+      send({ t: 'config', timeChoose: tc, timeGuess: tg });
+    }
+  });
+  $('controls').addEventListener('change', (e) => {
+    if (e.target.id === 'cfgAutoPilot') send({ t: 'config', autoPilot: e.target.checked });
   });
 
   // ---------- histórico ----------
@@ -415,20 +459,44 @@
       <div class="troph"><span>📛</span><div><small>TROFÉU SERASA · quem mais erra rodada, o nome mais sujo da mesa</small><div>${T.purrinha.length ? by(T.purrinha, 'roundLosses') : '<i>ainda ninguém</i>'}</div></div></div></div>`;
     const body = rows.map((r) => `<tr><td class="nm">${T.rei.includes(r.id) ? '🏆 ' : ''}${T.purrinha.includes(r.id) ? '📛 ' : ''}${esc(r.name)}${r.bot ? ' 🤖' : ''}</td>
       <td>${r.games}</td><td>${r.rounds}</td><td>${r.hits}</td><td class="lose">${r.roundLosses}</td><td>${r.lastPlace}</td><td class="first">${r.ferrado || 0}</td></tr>`).join('');
-    return `${top}<div class="tbl-wrap"><table class="score"><thead><tr><th>Jogador</th><th title="Partidas jogadas">P</th><th title="Rodadas jogadas nesta mesa">Rod</th><th title="Vezes que acertou a soma">Ac</th><th title="Rodadas em que não acertou">Err</th><th title="Vezes que foi o último a sobrar (perdeu a partida)">Últ</th><th title="Cantou ferrado: acertou de primeira com a mesa cheia. Não vale nada, é só orgulho.">🔥</th></tr></thead><tbody>${body}</tbody></table></div>
+    return `${top}<div class="tbl-wrap"><table class="score"><thead><tr><th>Jogador</th><th title="Partidas jogadas">P</th><th title="Rodadas jogadas nesta mesa">Rod</th><th title="Vezes que acertou a soma">Ac</th><th title="Rodadas em que não acertou">Err</th><th title="Vezes que foi o último a sobrar (perdeu a partida)">Últ</th><th title="Cantou ferrado: o primeiro a palpitar na rodada já acertou a soma em cima. Não vale nada, é só orgulho.">🔥</th></tr></thead><tbody>${body}</tbody></table></div>
       <p class="small">Quem erra menos rodadas é o melhor da mesa (Troféu Palito de Ouro); quem erra mais tem o nome mais sujo (Troféu Serasa). "Nome limpo" é não ter ficado por último em nenhuma partida ainda — não importa se a pessoa se salvou em 1º, 2º ou 3º, o que importa é nunca ter sido a última. Enquanto alguém segue limpo, o resto da mesa corre atrás pra sujar o nome dele também, só na brincadeira — e isso vale a sessão toda, que às vezes passa de 80 partidas em volta da mesa. P partidas · Rod rodadas · Ac acertos · Err erros de rodada · Últ vezes que sobrou por último · 🔥 cantou ferrado (orgulho, não conta pra nada).</p>`;
   }
   function openScore() {
     $('scoreBody').innerHTML = scoreHTML();
+    renderEndVoteBox();
     $('btnResetScore').hidden = !(S && S.isHost && !S.demo);
     $('scoreDlg').showModal();
   }
   $('btnResetScore').onclick = () => { send({ t: 'resetScores' }); $('scoreDlg').close(); };
 
+  // ---------- votação de encerramento por consenso ----------
+  function renderEndVoteBox() {
+    const box = $('endVoteBox');
+    if (!box) return;
+    if (!S || S.demo || S.mySeat === null) { box.innerHTML = ''; return; }
+    const ev = S.endVotes || { count: 0, needed: 0, mine: false, voterNames: [] };
+    box.innerHTML = `<hr>
+      <p class="small">${ev.count} de ${ev.needed} jogador${ev.needed === 1 ? '' : 'es'} confirmaram encerrar a sessão por hoje.${ev.voterNames.length ? ' (' + ev.voterNames.map(esc).join(', ') + ')' : ''}</p>
+      <button class="btn ${ev.mine ? 'gold' : ''} mini" data-act="endVote">${ev.mine ? 'Cancelar: quero continuar' : 'Quero parar por hoje'}</button>`;
+  }
+  $('endVoteBox').addEventListener('click', (e) => {
+    if (e.target.closest('[data-act="endVote"]')) send({ t: 'endVote' });
+  });
+
+  function ceremonyHTML(sb) {
+    const rows = sb.rows || [];
+    if (!rows.length) return '<p class="small">Ninguém completou uma rodada ainda.</p>';
+    const by = (ids) => rows.filter((r) => ids.includes(r.id)).map((r) => `<b>${esc(r.name)}</b>`).join(', ') || '<i>ninguém</i>';
+    return `<div class="trophies">
+      <div class="troph"><span>🏆</span><div><small>TROFÉU PALITO DE OURO</small><div>${by(sb.rei)}</div></div></div>
+      <div class="troph"><span>📛</span><div><small>TROFÉU SERASA</small><div>${by(sb.purrinha)}</div></div></div></div>`;
+  }
+
   // ---------- fim de partida ----------
   function renderBanner() {
     const s = S.s, b = $('banner');
-    if ($('scoreDlg').open) $('scoreBody').innerHTML = scoreHTML();
+    if ($('scoreDlg').open) { $('scoreBody').innerHTML = scoreHTML(); renderEndVoteBox(); }
     if (s.phase !== 'over' || bannerHidden) { b.hidden = true; return; }
     let title, sub;
     const l = s.loserSeat;

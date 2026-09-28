@@ -23,11 +23,12 @@
       <input id="nameInput" maxlength="14" placeholder="Como te chamam na mesa?" autocomplete="off">
     </label>
 
+    <div class="field">Seu avatar
+      <div id="avatarPick" class="avatar-pick"></div>
+    </div>
+
     <div class="row">
-      <button id="btnCreate" class="btn gold">Criar mesa</button>
-      <label class="inline">Palitos
-        <select id="sticksSel"><option value="3" selected>3 cada</option><option value="2">2 cada</option></select>
-      </label>
+      <button id="btnCreate" class="btn gold wide">Criar mesa</button>
     </div>
 
     <div class="row">
@@ -95,7 +96,7 @@
   </ol>
   <p><b>Descer palito</b> (bom para poucos): quem acerta desce 1 palito. Ao zerar os palitos, está salvo e sai da roda. Quem ainda tem palito continua jogando.</p>
   <p><b>No tiro</b> (bom para muitos): quem acerta já sai da roda na hora, salvo. Rodadas bem mais rápidas.</p>
-  <p><b>Cantou ferrado</b>: acertar de cara, no primeiro palpite da rodada, com a mesa ainda cheia. Não vale nada na regra — é só para o ego.</p>
+  <p><b>Cantou ferrado</b>: o primeiro a palpitar na rodada já acerta a soma em cima, sem sobrar chance pra mais ninguém — não importa se alguém já tinha saído da roda antes. Não vale nada na regra — é só para o ego.</p>
   <p class="small">O estilo é escolhido pelo dono da mesa antes de iniciar. Quem abre os palpites muda a cada rodada. Se você demorar, o jogo joga por você; duas vezes seguidas e um bot assume até você voltar.</p>
   <form method="dialog"><button class="btn gold">Entendi</button></form>
 </dialog>
@@ -104,8 +105,19 @@
 <dialog id="scoreDlg">
   <h2>Placar da mesa</h2>
   <div id="scoreBody"></div>
+  <div id="endVoteBox" class="end-vote"></div>
   <form method="dialog" class="dlg-actions">
     <button type="button" id="btnResetScore" class="btn mini" hidden>Zerar placar</button>
+    <button class="btn gold">Fechar</button>
+  </form>
+</dialog>
+
+<!-- ============ CERIMÔNIA DE ENCERRAMENTO ============ -->
+<dialog id="ceremonyDlg">
+  <h2>🏁 Sessão encerrada por consenso!</h2>
+  <p class="small">Todo mundo topou parar por hoje. Aqui vai o resultado final da mesa:</p>
+  <div id="ceremonyBody"></div>
+  <form method="dialog" class="dlg-actions">
     <button class="btn gold">Fechar</button>
   </form>
 </dialog>

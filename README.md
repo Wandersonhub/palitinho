@@ -12,6 +12,8 @@ Mesinha amarela de fórmica com friso metálico (a mesa de boteco de verdade), n
 - O campo de visão da câmera se ajusta pela proporção da tela (`public/scene3d.js`, `HALF_H_DEG`) pra garrafas e cachorro não sumirem no celular em pé.
 - Baseado em fotos reais de boteco: cadeiras de plástico amarelas e vermelhas misturadas (`.chair-yellow`/`.chair-red` em `public/style.css`, alternadas por assento em `public/app.js`), piso de ladrilho quadriculado e garrafa com isopor amarelo no balcão (`bottleWithKoozie` em `public/scene3d.js`).
 
+Cada jogador escolhe um avatar (10 opções, geradas na hora em SVG, sem imagem externa) antes de entrar na mesa; a escolha fica salva no navegador e aparece pra todo mundo na mesa.
+
 ## Deploy (jogar online com os amigos)
 
 O servidor já respeita `process.env.PORT` e só tem uma dependência (`ws`) — sobe em qualquer host Node com WebSocket.
@@ -47,11 +49,13 @@ Os dois estilos são a mesma estrutura — jogar até sobrar um só — mudando 
 - **Descer palito**: quem acerta a soma desce 1 palito da mão. Ao zerar os palitos, está salvo e sai da roda; quem ainda tem palito continua jogando. Bom para poucos jogadores (uma partida de 4-6 jogadores com 3 palitos dura ~15-20 rodadas).
 - **No tiro**: quem acerta já sai da roda na hora (1 acerto = salvo). Rodadas bem mais rápidas — bom para muita gente na mesa.
 
-O dono também escolhe 3 ou 2 palitos por jogador (só vale para "Descer palito"; em "No tiro" os palitos na mão nunca somem, servem só pra escolha secreta de cada rodada). A LONA proibida na 1ª rodada vale nos dois estilos.
+Todo mundo começa com 3 palitos, sempre — não dá mais pra escolher outra quantidade. A LONA proibida na 1ª rodada vale nos dois estilos.
+
+O dono também pode ajustar, ainda no lobby, quanto tempo cada fase dura (segundos pra escolher os palitos e segundos pra palpitar), e ligar/desligar o piloto automático persistente (ver seções abaixo).
 
 ## "Cantou ferrado"
 
-Quando alguém acerta a soma logo no primeiro palpite da rodada, com a mesa ainda cheia (ninguém saiu ainda), isso é "cantar ferrado" — o equivalente a "acertar na lata". Não influencia nenhuma regra nem resultado: é só para o ego, e aparece no histórico e no placar como curiosidade (🔥).
+Quando o primeiro a palpitar na rodada já acerta a soma em cima, sem sobrar chance pra mais ninguém — não importa se alguém já tinha saído da roda antes —, isso é "cantar ferrado", o equivalente a "acertar na lata". Não influencia nenhuma regra nem resultado: é só para o ego, e aparece no histórico e no placar como curiosidade (🔥).
 
 ## Placar e troféus
 
@@ -61,6 +65,11 @@ O placar vale enquanto a mesa existir e soma **rodadas**, não partidas: cada ro
 - 📛 **Troféu Serasa**: quem tem **mais** erros de rodada acumulados — o nome mais sujo da mesa. "Nome limpo" é não ter ficado por último em nenhuma partida ainda (não importa se a pessoa se salvou em 1º, 2º ou 3º — o que importa é nunca ter sido a última). Enquanto alguém segue limpo, o resto da mesa corre atrás pra sujar o nome dele também, só na brincadeira — e isso vale a sessão toda, que às vezes passa de 80 partidas em volta da mesa.
 - O placar também guarda: partidas jogadas, rodadas jogadas, acertos, vezes que sobrou por último (perdeu a partida) e quantas vezes cantou ferrado.
 - O dono da mesa pode zerar o placar quando quiser. Se o servidor reiniciar, o placar também zera (fica só na memória, enquanto a mesa existir).
+- **Troféu ao vivo é só quando não tem empate.** Durante o jogo, um troféu (Ouro ou Serasa) só aparece pendurado em alguém quando essa pessoa é a ÚNICA no topo (ou na base); com dois ou mais empatados, ninguém carrega o troféu até o empate se desfazer. Isso vale pro placar consultado a qualquer momento e pros ícones na mesa.
+
+## Parar por hoje (encerramento por consenso)
+
+Qualquer jogador sentado pode marcar "Quero parar por hoje" (no placar). Quando **todo mundo** que está sentado, conectado e não é bot já marcou, a mesa toda recebe uma cerimônia de encerramento: os troféus finais (Ouro e Serasa), dessa vez **sem filtro de empate** — mostrando todo mundo que estiver empatado no topo ou na base, o resultado honesto da sessão. Se alguém sai da mesa no meio da votação, o consenso é recalculado só com quem ficou, então uma pessoa saindo não trava as demais.
 
 ## Arquitetura
 
@@ -81,7 +90,8 @@ Decisões que importam:
 - **LONA na 1ª rodada** é barrada no motor (`minPick()`), então nenhum cliente adulterado consegue burlar.
 - **Palpites** só aceitam valores possíveis (entre a soma mínima e máxima da rodada) e nunca repetidos. Como sempre há mais valores possíveis que jogadores, ninguém fica sem palpite legal.
 - **Ordem de palpite gira** a cada rodada. A simulação mostra que quem palpita primeiro acerta bem mais que o último, então girar é essencial.
-- **Tempo:** 20 s para escolher, 15 s para palpitar. Estourou o prazo, joga por você. Duas vezes seguidas, entra o piloto automático até você clicar "Voltei".
+- **Tempo:** 20 s para escolher, 15 s para palpitar, por padrão — o dono da mesa pode ajustar esses dois prazos no lobby (5-60 s pra escolher, 5-45 s pra palpitar), antes de iniciar. Estourou o prazo, joga por você (uma jogada aleatória/padrão, pra não travar o jogo).
+- **Piloto automático persistente é opcional e vem desligado.** Por padrão, cada vez que o prazo estoura o jogo só joga aquela jogada por você; não existe mais um modo "grudento" que assume o jogador de vez. O dono da mesa pode ligar o piloto automático persistente no lobby (duas jogadas perdidas seguidas aí sim ativam o modo, até a pessoa clicar "Voltei").
 - **Reconexão:** o token fica no navegador; recarregar a página devolve o mesmo lugar.
 - **Sair no meio da partida:** um bot assume a mão.
 

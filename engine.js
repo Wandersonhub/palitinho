@@ -98,6 +98,7 @@ class Game {
       name: info.name,
       bot: !!info.bot,
       persona: info.persona || null,
+      avatar: info.avatar || null,
       auto: false,
       connected: info.connected !== false,
       timeouts: 0,
@@ -249,9 +250,9 @@ class Game {
     let total = 0;
     for (const s of this.order) total += this.choices[s];
     const hit = this.guesses.find((g) => g.value === total);
-    // "Cantou ferrado": acertou de cara, no 1º palpite da rodada, com a mesa
-    // ainda cheia (ninguém saiu ainda). É só para o ego — não afeta nada.
-    const ferrado = !!(hit && this.guesses[0] && this.guesses[0].seat === hit.seat && this.order.length === this.startCount);
+    // "Cantou ferrado": o primeiro a palpitar na rodada já acerta a soma em
+    // cima, sem sobrar chance pra mais ninguém. Só para o ego — não afeta nada.
+    const ferrado = !!(hit && this.guesses[0] && this.guesses[0].seat === hit.seat);
     const rec = {
       round: this.round,
       starterSeat: this.order[0],
@@ -342,6 +343,7 @@ class Game {
           ? {
               seat: i,
               name: p.name,
+              avatar: p.avatar,
               bot: p.bot,
               auto: p.auto,
               connected: p.connected,
