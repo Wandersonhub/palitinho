@@ -229,27 +229,24 @@ body {
 .tb-mid small { font-size: 11px; color: var(--dim); font-weight: 500; letter-spacing: .3px; }
 
 .felt {
-  inset: calc(var(--seat) * .9);
-  border: 0; border-radius: 50%;
-  background: linear-gradient(160deg, #8a5a33 0%, #5a3520 38%, #3d2313 62%, #6b4327 100%);
-  box-shadow: 0 30px 50px -10px #000d, 0 10px 18px #0009, inset 0 2px 3px #e8b57a66, inset 0 -3px 6px #0008;
+  inset: calc(var(--seat) * .55);
+  border: clamp(8px, 1.6vmin, 16px) solid var(--rail);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 38%, #1f8552 0%, #1c6b45 45%, #0d3c26 82%, #092c1c 100%);
+  box-shadow: inset 0 0 0 2px #7a4b26, inset 0 0 60px #000a, 0 12px 40px #000c, 0 0 0 2px #2c190c, inset 0 2px 3px #ffffff22;
 }
 .felt::before {
-  content: ""; position: absolute; inset: clamp(9px, 1.9vmin, 18px); border-radius: 50%;
-  background: radial-gradient(ellipse at 35% 25%, #2b2320, #120d0b 80%);
-  box-shadow: inset 0 3px 5px #fff2, inset 0 -3px 6px #000c, 0 1px 2px #000b;
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .felt::after {
-  content: ""; position: absolute; inset: clamp(20px, 4.2vmin, 40px); border-radius: 50%;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse at 50% 38%, #24915c 0%, #16714a 40%, #0c4a2e 82%, #093a24 100%);
-  box-shadow: inset 0 0 40px 6px #0007, inset 0 0 0 2px #0a3a2466;
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: inset 0 0 40px 10px #0007, inset 0 10px 26px #ffffff18;
 }
 .felt .ring { position: absolute; inset: 15%; border-radius: 50%; border: 2px solid #e8c15a38; z-index: 1; }
 .felt .mark {
   position: absolute; left: 50%; top: 27%; transform: translateX(-50%); z-index: 1; font: 800 clamp(12px, 3vmin, 30px) Georgia, serif;
-  letter-spacing: .5em; color: #ffffff14; white-space: nowrap; font-style: normal; text-indent: .5em;
+  letter-spacing: .5em; color: #ffffff22; white-space: nowrap; font-style: normal; text-indent: .5em;
 }
 .center { z-index: 2; }
 
